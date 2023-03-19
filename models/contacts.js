@@ -1,63 +1,39 @@
-const fs = require("fs/promises");
-const path = require("path");
-const filePath = path.join(__dirname, "contacts.json");
-const shortid = require("shortid");
+const express = require("express");
 
-const listContacts = async () => {
-  const result = await fs.readFile(filePath);
-  return JSON.parse(result);
-};
+// contacts controllers
+const ctrl = require("../../controllers/contacts");
 
-const updateListAllContacts = async (data) => {
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-};
+// try-catch wrapper
+const { ctrlWrapper } = require("../../helpers");
 
-const getContactById = async (contactId) => {
-  const allContacts = await listContacts();
-  const [oneContact] = allContacts.filter((elem) => elem.id === contactId);
-  if (!oneContact) {
-    return null;
-  }
-  return oneContact;
-};
+// validate request body and ID
+const { validateBody, isValidId } = require("../../middlewares");
 
-const addContact = async (body) => {
-  const allContacts = await listContacts();
-  const newContact = { id: shortid.generate(), ...body };
-  allContacts.push(newContact);
-  await updateListAllContacts(allContacts);
-  if (!newContact) {
-    return null;
-  }
-  return newContact;
-};
+// Joi validate Schema
+const { joiSchema } = require("../../models/contact");
 
-const removeContact = async (contactId) => {
-  const allContacts = await listContacts();
-  const index = allContacts.findIndex((contact) => contact.id === contactId);
-  if (index === -1) {
-    return null;
-  }
-  const deletedContact = allContacts.splice(index, 1);
-  await updateListAllContacts(allContacts);
-  return deletedContact;
-};
+const router = express.Router();
 
-const updateContact = async (contactId, body) => {
-  const allContacts = await listContacts();
-  const index = allContacts.findIndex((contact) => contact.id === contactId);
-  if (index === -1) {
-    return null;
-  }
-  allContacts[index] = { ...body, id: contactId };
-  await updateListAllContacts(allContacts);
-  return allContacts[index];
-};
+router.get("/", ctrlWrapper(ctrl.getAll));
 
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-};
+router.get("/:contactId", isValidId, ctrlWrapper(ctrl.getById));
+
+router.post("/", validateBody(joiSchema.addSchema), ctrlWrapper(ctrl.add));
+
+router.put(
+  "/:contactId",
+  isValidId,
+  validateBody(joiSchema.addSchema),
+  ctrlWrapper(ctrl.updateById)
+);
+
+router.patch(
+  "/:contactId/favorite",
+  isValidId,
+  validateBody(joiSchema.updateFavoriteSchema),
+  ctrlWrapper(ctrl.updateStatusContact)
+);
+
+router.delete("/:contactId", ctrlWrapper(ctrl.removeById));
+
+module.exports = router;

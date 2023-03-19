@@ -1,79 +1,39 @@
 const express = require("express");
-const Joi = require("joi");
+
+// contacts controllers
+const ctrl = require("../../controllers/contacts");
+
+// try-catch wrapper
+const { ctrlWrapper } = require("../../helpers");
+
+// validate request body and ID
+const { validateBody, isValidId } = require("../../middlewares/index");
+
+// Joi validate Schema
+const { joiSchema } = require("../../models/contact");
+
 const router = express.Router();
 
-const contacts = require("../../models/contacts.js");
-const { createError } = require("../../helpers/index");
+router.get("/", ctrlWrapper(ctrl.getAll));
 
-const joiSchema = Joi.object({
-  name: Joi.string().min(2).required(),
-  email: Joi.string().email().required(),
-  phone: Joi.number().required(),
-});
+router.get("/:contactId", isValidId, ctrlWrapper(ctrl.getById));
 
-router.get("/", async (req, res, next) => {
-  try {
-    const result = await contacts.listContacts();
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+router.post("/", validateBody(joiSchema.addSchema), ctrlWrapper(ctrl.add));
 
-router.get("/:contactId", async (req, res, next) => {
-  try {
-    const { contactId } = req.params;
-    const result = await contacts.getContactById(contactId);
-    if (!result) {
-      throw createError(404, `Contact with id: ${contactId} didn't find`);
-    }
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+router.put(
+  "/:contactId",
+  isValidId,
+  validateBody(joiSchema.addSchema),
+  ctrlWrapper(ctrl.updateById)
+);
 
-router.post("/", async (req, res, next) => {
-  try {
-    const { error } = joiSchema.validate(req.body);
-    if (error) {
-      throw createError(400, error.message);
-    }
-    const result = await contacts.addContact(req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+router.patch(
+  "/:contactId/favorite",
+  isValidId,
+  validateBody(joiSchema.updateFavoriteSchema),
+  ctrlWrapper(ctrl.updateStatusContact)
+);
 
-router.delete("/:contactId", async (req, res, next) => {
-  try {
-    const { contactId } = req.params;
-    const result = await contacts.removeContact(contactId);
-    if (!result) {
-      throw createError(404, `Contact with id: ${contactId} didn't find`);
-    }
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.put("/:contactId", async (req, res, next) => {
-  try {
-    const { error } = joiSchema.validate(req.body);
-    if (error) {
-      throw createError(400, error.message);
-    }
-    const { contactId } = req.params;
-    const result = await contacts.updateContact(contactId, req.body);
-    if (!result) {
-      throw createError(404, `Contact with id: ${contactId} didn't find`);
-    }
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete("/:contactId", ctrlWrapper(ctrl.removeById));
 
 module.exports = router;
