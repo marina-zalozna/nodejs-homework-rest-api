@@ -1,19 +1,39 @@
-// const fs = require('fs/promises')
+const express = require("express");
 
-const listContacts = async () => {}
+// contacts controllers
+const ctrl = require("../../controllers/contacts");
 
-const getContactById = async (contactId) => {}
+// try-catch wrapper
+const { ctrlWrapper } = require("../../helpers");
 
-const removeContact = async (contactId) => {}
+// validate request body and ID
+const { validateBody, isValidId } = require("../../middlewares");
 
-const addContact = async (body) => {}
+// Joi validate Schema
+const { joiSchema } = require("../../models/contact");
 
-const updateContact = async (contactId, body) => {}
+const router = express.Router();
 
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-}
+router.get("/", ctrlWrapper(ctrl.getAll));
+
+router.get("/:contactId", isValidId, ctrlWrapper(ctrl.getById));
+
+router.post("/", validateBody(joiSchema.addSchema), ctrlWrapper(ctrl.add));
+
+router.put(
+  "/:contactId",
+  isValidId,
+  validateBody(joiSchema.addSchema),
+  ctrlWrapper(ctrl.updateById)
+);
+
+router.patch(
+  "/:contactId/favorite",
+  isValidId,
+  validateBody(joiSchema.updateFavoriteSchema),
+  ctrlWrapper(ctrl.updateStatusContact)
+);
+
+router.delete("/:contactId", ctrlWrapper(ctrl.removeById));
+
+module.exports = router;
